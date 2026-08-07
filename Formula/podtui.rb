@@ -16,14 +16,15 @@ class Podtui < Formula
   depends_on "mpv"
 
   def install
-    sub = "podtui-darwin-#{Hardware::CPU.arm? ? "arm64" : "x64"}"
-    # The binary and its two FFI libs (libopentui.dylib, libcavacore.dylib)
-    # must stay SIBLINGS: the loaders resolve them relative to
-    # dirname(execPath). Keep everything under libexec and expose only a
-    # `podtui` symlink on PATH.
+    # Homebrew flattens a tarball's single top-level dir into the build CWD, so
+    # the binary + libs land directly at buildpath. Handle both stagings.
+    # The binary and its two FFI libs (libopentui, libcavacore) must stay
+    # SIBLINGS: the loaders resolve them relative to dirname(execPath). Keep
+    # everything under libexec and expose only a `podtui` symlink on PATH.
+    sub = Dir["podtui-darwin-*"].find { |d| File.directory?(d) } || "."
     libexec.install "#{sub}/podtui"
     libexec.install Dir["#{sub}/lib*.dylib"]
-    bin.install_symlink libexec/"podtui"
+    bin.install_symlink libexec / "podtui"
   end
 
   test do
