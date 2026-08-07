@@ -46,7 +46,7 @@ jobs:
           current="${{ steps.current.outputs.tag }}"
           latest="${{ steps.latest.outputs.tag }}"
           newer="$(printf '%s\n%s' "$current" "$latest" | sort -V | tail -1)"
-          if [ "$newer" != "$latest" ]; then
+          if [ "$current" = "$latest" ] || [ "$newer" = "$current" ]; then
             echo "formula already current (v$current); nothing to do"
             exit 0
           fi
