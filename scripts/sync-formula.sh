@@ -7,11 +7,17 @@
 # darwin tarballs from the release, recomputes their sha256, and rewrites the
 # formula (version, both /v<old>/... URLs, and both sha256 lines).
 #
-# Requires: gh (authenticated), shasum, python3.
+# Runner-agnostic: works locally on macOS/Linux AND inside the GitHub Actions
+# workflow (.github/workflows/update-formula.yml), which calls it with
+# REPO=mikefreno/podtui. sha256 uses shasum (macOS) or sha256sum (Linux).
+#
+# Requires: gh (authenticated), shasum|sha256sum, python3.
 
 set -euo pipefail
 
 VERSION="${1:?usage: sync-formula.sh <version, e.g. 0.2.0>}"
+REPO="${REPO:-mikefreno/podtui}"
+TAG="v${VERSION#v}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FORMULA="$ROOT/Formula/podtui.rb"
 TMP="$(mktemp -d)"
@@ -22,11 +28,15 @@ if [ ! -f "$FORMULA" ]; then
   exit 1
 fi
 
-echo "Fetching asset hashes for v$VERSION..."
+echo "Fetching asset hashes for $TAG from $REPO..."
 for arch in arm64 x64; do
   asset="podtui-darwin-$arch.tar.gz"
-  gh release download "v$VERSION" -p "$asset" -D "$TMP" --clobber >/dev/null
-  sha=$(shasum -a 256 "$TMP/$asset" | awk '{ print $1 }')
+  gh release download "$TAG" -R "$REPO" -p "$asset" -D "$TMP" --clobber >/dev/null
+  if command -v shasum >/dev/null 2>&1; then
+    sha=$(shasum -a 256 "$TMP/$asset" | awk '{ print $1 }')
+  else
+    sha=$(sha256sum "$TMP/$asset" | awk '{ print $1 }')
+  fi
   echo "  $asset -> $sha"
   export "SHA_${arch^^}"="$sha"   # SHA_ARM64, SHA_X64
 done

@@ -1,0 +1,68 @@
+# Keeps Formula/podtui.rb in sync with the latest PodTUI release, fully
+# automatically. Homebrew never wires a tap to its upstream repo, so this
+# workflow polls mikefreno/podtui's latest GitHub release once an hour; when
+# the version is newer than the formula's, it recomputes both darwin sha256s
+# and pushes the updated formula to this repo using the runner's own token
+# (no secrets, no PATs).
+#
+# brew users then pick it up with the usual `brew update && brew upgrade podtui`.
+name: update-formula
+
+on:
+  schedule:
+    - cron: "17 * * * *"   # hourly
+  workflow_dispatch: {}     # also runnable by hand
+
+permissions:
+  contents: write
+
+concurrency:
+  group: formula-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Latest PodTUI release tag
+        id: latest
+        run: |
+          tag="$(gh api repos/mikefreno/podtui/releases/latest -q .tag_name | sed 's/^v//')"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Current formula version (from release URL)
+        id: current
+        run: |
+          ver="$(grep -oE '/releases/download/v[0-9]+\.[0-9]+\.[0-9]+/' Formula/podtui.rb \
+            | head -1 | tr -d '/v')"
+          echo "tag=$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if formula is current
+        run: |
+          current="${{ steps.current.outputs.tag }}"
+          latest="${{ steps.latest.outputs.tag }}"
+          newer="$(printf '%s\n%s' "$current" "$latest" | sort -V | tail -1)"
+          if [ "$newer" != "$latest" ]; then
+            echo "formula already current (v$current); nothing to do"
+            exit 0
+          fi
+          echo "new release available: v$latest (current v$current)"
+
+      - name: Sync formula (version + URLs + sha256)
+        run: REPO=mikefreno/podtui ./scripts/sync-formula.sh "${{ steps.latest.outputs.tag }}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/podtui.rb
+          if git diff --cached --quiet; then
+            echo "formula unchanged; nothing to commit"
+            exit 0
+          fi
+          git commit -m "podtui ${{ steps.latest.outputs.tag }}"
+          git push
