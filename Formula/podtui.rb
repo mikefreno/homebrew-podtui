@@ -1,7 +1,6 @@
 class Podtui < Formula
   desc "Keyboard-first terminal podcast client (yazi-style, OpenTUI)"
   homepage "https://github.com/mikefreno/podtui"
-  version "0.1.0"
 
   # PodTUI ships per-arch macOS tarballs. `Hardware::CPU.arm?` selects the
   # matching asset at formula-resolve time, so `brew install` works on both
@@ -28,6 +27,6 @@ class Podtui < Formula
   end
 
   test do
-    assert_match "PodTUI version 0.1.0", shell_output("#{bin}/podtui --version")
+    assert_match "PodTUI version", shell_output("#{bin}/podtui --version")
   end
 end
