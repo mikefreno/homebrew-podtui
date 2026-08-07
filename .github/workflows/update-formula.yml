@@ -37,8 +37,8 @@ jobs:
       - name: Current formula version (from release URL)
         id: current
         run: |
-          ver="$(grep -oE '/releases/download/v[0-9]+\.[0-9]+\.[0-9]+/' Formula/podtui.rb \
-            | head -1 | tr -d '/v')"
+          ver="$(grep -oE '/releases/download/v[0-9]+\.[0-9]+\.[0-9]+' Formula/podtui.rb \
+            | head -1 | sed -E 's#.*/v##')"
           echo "tag=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Skip if formula is current
