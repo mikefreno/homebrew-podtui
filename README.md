@@ -5,7 +5,7 @@ Homebrew tap providing the **PodTUI** keyboard-first terminal podcast client.
 ## Install
 
 ```sh
-brew tap mikefreno/podtui
+brew tap mikefreno/tap
 brew install podtui
 ```
 
