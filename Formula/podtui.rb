@@ -16,15 +16,21 @@ class Podtui < Formula
   depends_on "mpv"
 
   def install
-    # Homebrew flattens a tarball's single top-level dir into the build CWD, so
-    # the binary + libs land directly at buildpath. Handle both stagings.
-    # The binary and its two FFI libs (libopentui, libcavacore) must stay
-    # SIBLINGS: the loaders resolve them relative to dirname(execPath). Keep
-    # everything under libexec and expose only a `podtui` symlink on PATH.
+    # Newer tarballs ship PodTui.app (compiled binary + bundled mpv + icon).
+    # The `podtui` entry point MUST point at the app's binary so the bundled,
+    # bundle-signed mpv is used — that's what makes macOS Now Playing show
+    # the PodTui icon/name instead of a blank placeholder. Older tarballs
+    # fall back to the plain binary + sibling dylibs layout.
     sub = Dir["podtui-darwin-*"].find { |d| File.directory?(d) } || "."
-    libexec.install "#{sub}/podtui"
-    libexec.install Dir["#{sub}/lib*.dylib"]
-    bin.install_symlink libexec / "podtui"
+    app = "#{sub}/PodTui.app"
+    if File.directory?(app)
+      libexec.install app
+      bin.install_symlink libexec / "PodTui.app" / "Contents" / "MacOS" / "podtui"
+    else
+      libexec.install "#{sub}/podtui"
+      libexec.install Dir["#{sub}/lib*.dylib"]
+      bin.install_symlink libexec / "podtui"
+    end
   end
 
   test do
