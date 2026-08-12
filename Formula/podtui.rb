@@ -15,6 +15,12 @@ class Podtui < Formula
 
   depends_on "mpv"
 
+  # The app bundle ships dylibs (libopentui, libcavacore) with @rpath IDs and
+  # no headerpad. Keep them: brew's post-install linkage fix rewrites dylib
+  # IDs to absolute opt paths, which doesn't fit their load-commands header
+  # ("needs to be relinked, possibly with -headerpad").
+  preserve_rpath
+
   def install
     # Newer tarballs ship PodTui.app (compiled binary + bundled mpv + icon).
     # The `podtui` entry point MUST point at the app's binary so the bundled,
