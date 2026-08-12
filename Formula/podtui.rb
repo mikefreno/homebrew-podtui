@@ -22,21 +22,13 @@ class Podtui < Formula
   preserve_rpath
 
   def install
-    # Newer tarballs ship PodTui.app (compiled binary + bundled mpv + icon).
-    # The `podtui` entry point MUST point at the app's binary so the bundled,
-    # bundle-signed mpv is used — that's what makes macOS Now Playing show
-    # the PodTui icon/name instead of a blank placeholder. Older tarballs
-    # fall back to the plain binary + sibling dylibs layout.
+    # The binary and its two FFI libs (libopentui, libcavacore) must stay
+    # SIBLINGS: the loaders resolve them relative to dirname(execPath). Keep
+    # everything under libexec and expose only a `podtui` symlink on PATH.
     sub = Dir["podtui-darwin-*"].find { |d| File.directory?(d) } || "."
-    app = "#{sub}/PodTui.app"
-    if File.directory?(app)
-      libexec.install app
-      bin.install_symlink libexec / "PodTui.app" / "Contents" / "MacOS" / "podtui"
-    else
-      libexec.install "#{sub}/podtui"
-      libexec.install Dir["#{sub}/lib*.dylib"]
-      bin.install_symlink libexec / "podtui"
-    end
+    libexec.install "#{sub}/podtui"
+    libexec.install Dir["#{sub}/lib*.dylib"]
+    bin.install_symlink libexec / "podtui"
   end
 
   test do
